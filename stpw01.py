@@ -21,7 +21,7 @@ class WorkLogger:
 
         self.sttime = None
         self.etime = None
-        self.no = 1
+        self.no = self.get_last_log_number() + 1
         self.running = False
 
     def create_widgets(self):
@@ -92,6 +92,21 @@ class WorkLogger:
     def create_log_filename(self):
         now = datetime.datetime.now()
         return os.path.join(os.getcwd(), f"log_{now.strftime('%Y%m')}.csv")
+
+    def get_last_log_number(self):
+        try:
+            with open(self.log_file, 'r', encoding='utf-8-sig') as f:
+                lines = f.readlines()
+                if lines:
+                    last_line = lines[-1]
+                    last_no = int(last_line.split(',')[0])
+                    return last_no
+        except FileNotFoundError:
+            return 0
+        except Exception as e:
+            messagebox.showerror("エラー", f"ログファイルの読み込み中にエラーが発生しました: {e}")
+            return 0
+        return 0
 
     def start_work(self):
         if not self.project_combobox.get() or not self.work_combobox.get():
