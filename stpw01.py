@@ -91,7 +91,7 @@ class WorkLogger:
 
     def create_log_filename(self):
         now = datetime.datetime.now()
-        return os.path.join(os.getcwd(), f"log_{now.strftime('%Y%m')}.txt")
+        return os.path.join(os.getcwd(), f"log_{now.strftime('%Y%m')}.csv")
 
     def start_work(self):
         if not self.project_combobox.get() or not self.work_combobox.get():
@@ -131,9 +131,12 @@ class WorkLogger:
             pass
         elif action == "end":
             ttime = (self.etime - self.sttime).total_seconds() / 3600  # 作業時間を計算
-            with open(self.log_file, "a", encoding="utf-8") as f:
+            with open(self.log_file, "a", encoding="utf-8-sig") as f:  # utf-8-sig エンコーディングを使用
                 # 開始時刻、終了時刻、作業時間を同じ1行に記録
-                f.write(f"{self.no},{self.project_combobox.get()},{self.work_combobox.get()},{self.sttime},{self.etime},{ttime:.2f}\n")
+                # 日時を「YYYY-MM-DD HH:MM:SS」形式でフォーマット
+                sttime_str = self.sttime.strftime('%Y-%m-%d %H:%M:%S')
+                etime_str = self.etime.strftime('%Y-%m-%d %H:%M:%S')
+                f.write(f"{self.no},{self.project_combobox.get()},{self.work_combobox.get()},{sttime_str},{etime_str},{ttime:.2f}\n")
             self.no += 1
 
     def open_log(self):
