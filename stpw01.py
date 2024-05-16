@@ -1,127 +1,132 @@
 import tkinter as tk
-from tkinter import ttk
-from tkinter import filedialog
-from tkinter import messagebox
+from tkinter import ttk, filedialog, messagebox
+import time
 import datetime
 import os
-import subprocess
 
-# プロジェクトと作業内容を読み込む関数
-def load_projects_and_works():
-    global projects, works
-    try:
-        with open("pj.txt", "r") as f:
-            projects = [line.strip().split(",") for line in f.readlines()]
-        with open("wk.txt", "r") as f:
-            works = [line.strip() for line in f.readlines()]
-    except Exception as e:
-        messagebox.showerror("読み込みエラー", f"ファイルの読み込み中にエラーが発生しました: {e}")
-        root.quit()
+class WorkLogger:
 
-# ログファイルのパスを取得
-def get_log_file_path():
-    now = datetime.datetime.now()
-    return f"log_{now.strftime('%Y%m')}.txt"
+    def __init__(self, master):
+        self.master = master
+        self.master.title("作業時間記録システム")
 
-# 開始ボタン押下時の処理
-def start_task():
-    global sttime
-    if not (pjno_var.get() and work_var.get()):
-        messagebox.showwarning("警告", "プロジェクト番号と作業内容を選択してください。")
-        return
-    sttime = datetime.datetime.now()
-    status_label.config(text="作業中")
-    start_button.config(state="disabled")
-    end_button.config(state="normal")
-    project_combobox.config(state="disabled")
-    work_combobox.config(state="disabled")
-    log_path = get_log_file_path()
-    no = 1
-    if os.path.exists(log_path):
-        with open(log_path, "r") as f:
-            lines = f.readlines()
-            if lines:
-                last_no = int(lines[-1].split(",")[0])
-                no = last_no + 1
-    with open(log_path, "a") as f:
-        f.write(f"{no},{pjno_var.get()},{pjname_var.get()},{work_var.get()},{sttime.strftime('%Y-%m-%d %H:%M')},")
-    update_elapsed_time()
+        # 初期ファイルパス
+        self.pj_file = os.path.join(os.getcwd(), "pj.txt")
+        self.wk_file = os.path.join(os.getcwd(), "wk.txt")
+        self.log_file = self.create_log_filename()
 
-# 終了ボタン押下時の処理
-def end_task():
-    global etime, ttime
-    etime = datetime.datetime.now()
-    ttime = (etime - sttime).total_seconds() / 3600  # 時間単位に変換
-    status_label.config(text="作業前")
-    start_button.config(state="normal")
-    end_button.config(state="disabled")
-    project_combobox.config(state="normal")
-    work_combobox.config(state="normal")
-    log_path = get_log_file_path()
-    with open(log_path, "a") as f:
-        f.write(f"{pjno_var.get()},{pjname_var.get()},{work_var.get()},{etime.strftime('%Y-%m-%d %H:%M')},{ttime:.2f}\n")
+        # GUI要素の初期化
+        self.create_widgets()
+        self.load_project_info()
+        self.load_work_info()
 
-# 経過時間の更新
-def update_elapsed_time():
-    if status_label.cget("text") == "作業中":
+        self.sttime = None
+        self.etime = None
+        self.no = 1
+        self.running = False
+
+    def create_widgets(self):
+        # プロジェクト情報の表示と選択
+        tk.Label(self.master, text="プロジェクト").grid(row=0, column=0)
+        self.project_combobox = ttk.Combobox(self.master, state="readonly")
+        self.project_combobox.grid(row=0, column=1, columnspan=2)
+
+        # 作業内容の表示と選択
+        tk.Label(self.master, text="作業内容").grid(row=1, column=0)
+        self.work_combobox = ttk.Combobox(self.master, state="readonly")
+        self.work_combobox.grid(row=1, column=1, columnspan=2)
+
+        # ステータス表示
+        self.status_label = tk.Label(self.master, text="作業前", fg="red")
+        self.status_label.grid(row=2, column=0, columnspan=3)
+
+        # 開始ボタン
+        self.start_button = tk.Button(self.master, text="開始", command=self.start_work)
+        self.start_button.grid(row=3, column=0)
+
+        # 終了ボタン
+        self.end_button = tk.Button(self.master, text="終了", command=self.end_work, state=tk.DISABLED)
+        self.end_button.grid(row=3, column=1)
+
+        # ログボタン
+        self.log_button = tk.Button(self.master, text="ログを開く", command=self.open_log)
+        self.log_button.grid(row=3, column=2)
+
+        # ファイルパスの表示と選択ボタン
+        self.create_file_selector("pj-file", self.pj_file, 4)
+        self.create_file_selector("wk-file", self.wk_file, 5)
+        self.create_file_selector("log-file", self.log_file, 6)
+
+    def create_file_selector(self, label, filepath, row):
+        tk.Label(self.master, text=label).grid(row=row, column=0)
+        path_entry = tk.Entry(self.master, width=50)
+        path_entry.insert(0, filepath)
+        path_entry.grid(row=row, column=1)
+        tk.Button(self.master, text="選択", command=lambda: self.select_file(path_entry)).grid(row=row, column=2)
+
+    def select_file(self, path_entry):
+        file_path = filedialog.askopenfilename()
+        if file_path:
+            path_entry.delete(0, tk.END)
+            path_entry.insert(0, file_path)
+
+    def load_project_info(self):
+        try:
+            with open(self.pj_file, "r", encoding="utf-8") as f:
+                projects = [line.strip() for line in f.readlines()]
+                self.project_combobox['values'] = projects
+        except FileNotFoundError:
+            messagebox.showerror("エラー", f"{self.pj_file} が見つかりません。")
+
+    def load_work_info(self):
+        try:
+            with open(self.wk_file, "r", encoding="utf-8") as f:
+                works = [line.strip() for line in f.readlines()]
+                self.work_combobox['values'] = works
+        except FileNotFoundError:
+            messagebox.showerror("エラー", f"{self.wk_file} が見つかりません。")
+
+    def create_log_filename(self):
         now = datetime.datetime.now()
-        elapsed = now - sttime
-        elapsed_label.config(text=f"{elapsed}")
-        root.after(1000, update_elapsed_time)
+        return os.path.join(os.getcwd(), f"log_{now.strftime('%Y%m')}.txt")
 
-# ログファイルを開く
-def open_log():
-    log_path = get_log_file_path()
-    if os.path.exists(log_path):
+    def start_work(self):
+        if not self.project_combobox.get() or not self.work_combobox.get():
+            messagebox.showwarning("警告", "プロジェクトと作業内容を選択してください。")
+            return
+
+        self.sttime = datetime.datetime.now()
+        self.status_label.config(text="作業中", fg="green")
+        self.start_button.config(state=tk.DISABLED)
+        self.end_button.config(state=tk.NORMAL)
+        self.running = True
+        self.log_action("start")
+
+    def end_work(self):
+        self.etime = datetime.datetime.now()
+        self.status_label.config(text="作業前", fg="red")
+        self.start_button.config(state=tk.NORMAL)
+        self.end_button.config(state=tk.DISABLED)
+        self.running = False
+        self.log_action("end")
+
+    def log_action(self, action):
+        if action == "start":
+            with open(self.log_file, "a", encoding="utf-8") as f:
+                f.write(f"{self.no},{self.project_combobox.get()},{self.work_combobox.get()},{self.sttime}\n")
+        elif action == "end":
+            ttime = (self.etime - self.sttime).total_seconds() / 3600
+            with open(self.log_file, "a", encoding="utf-8") as f:
+                f.write(f"{self.project_combobox.get()},{self.work_combobox.get()},{self.etime},{ttime:.2f}\n")
+            self.no += 1
+
+    def open_log(self):
         if os.name == 'nt':  # Windows
-            os.startfile(log_path)
+            os.startfile(self.log_file)
         elif os.name == 'posix':  # macOS, Linux
-            subprocess.call(('open', log_path))
-    else:
-        messagebox.showinfo("情報", "ログファイルが存在しません。")
+            os.system(f"open {self.log_file}" if os.uname().sysname == 'Darwin' else f"xdg-open {self.log_file}")
 
-# GUIの設定
-root = tk.Tk()
-root.title("作業時間記録アプリ")
-
-# プロジェクトと作業内容の変数
-pjno_var = tk.StringVar()
-pjname_var = tk.StringVar()
-work_var = tk.StringVar()
-
-load_projects_and_works()
-
-# プロジェクト選択
-project_frame = ttk.Frame(root)
-project_frame.pack(pady=10)
-ttk.Label(project_frame, text="プロジェクト:").pack(side="left")
-project_combobox = ttk.Combobox(project_frame, textvariable=pjname_var, values=[f"{p[0]}, {p[1]}" for p in projects])
-project_combobox.pack(side="left")
-project_combobox.bind("<<ComboboxSelected>>", lambda e: pjno_var.set(project_combobox.get().split(",")[0]))
-
-# 作業内容選択
-work_frame = ttk.Frame(root)
-work_frame.pack(pady=10)
-ttk.Label(work_frame, text="作業内容:").pack(side="left")
-work_combobox = ttk.Combobox(work_frame, textvariable=work_var, values=works)
-work_combobox.pack(side="left")
-
-# 状態表示
-status_label = ttk.Label(root, text="作業前")
-status_label.pack(pady=10)
-
-# 経過時間表示
-elapsed_label = ttk.Label(root, text="")
-elapsed_label.pack(pady=5)
-
-# ボタン配置
-button_frame = ttk.Frame(root)
-button_frame.pack(pady=10)
-start_button = ttk.Button(button_frame, text="開始", command=start_task)
-start_button.pack(side="left", padx=5)
-end_button = ttk.Button(button_frame, text="終了", command=end_task, state="disabled")
-end_button.pack(side="left", padx=5)
-log_button = ttk.Button(button_frame, text="ログを開く", command=open_log)
-log_button.pack(side="left", padx=5)
-
-root.mainloop()
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = WorkLogger(root)
+    root.mainloop()
