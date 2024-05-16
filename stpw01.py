@@ -1,132 +1,178 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import time
-import datetime
 import os
+import datetime
 
-class WorkLogger:
+# グローバル変数の初期化
+start_time = None
+end_time = None
+log_file_path = "log_" + datetime.datetime.now().strftime("%Y%m") + ".txt"
+pj_file_path = os.path.join(os.getcwd(), "pj.txt")
+wk_file_path = os.path.join(os.getcwd(), "wk.txt")
 
-    def __init__(self, master):
-        self.master = master
-        self.master.title("作業時間記録システム")
+# GUI設定
+root = tk.Tk()
+root.title("作業時間記録アプリ")
 
-        # 初期ファイルパス
-        self.pj_file = os.path.join(os.getcwd(), "pj.txt")
-        self.wk_file = os.path.join(os.getcwd(), "wk.txt")
-        self.log_file = self.create_log_filename()
+# プロジェクト情報と作業内容の読み込み
+def load_projects(file_path):
+    projects = {}
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            for line in file:
+                pjno, pjname = line.strip().split(',')
+                projects[pjno] = pjname
+    except Exception as e:
+        messagebox.showerror("Error", f"Error loading projects: {e}")
+    return projects
 
-        # GUI要素の初期化
-        self.create_widgets()
-        self.load_project_info()
-        self.load_work_info()
+def load_work(file_path):
+    work_list = []
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            work_list = [line.strip() for line in file]
+    except Exception as e:
+        messagebox.showerror("Error", f"Error loading work items: {e}")
+    return work_list
 
-        self.sttime = None
-        self.etime = None
-        self.no = 1
-        self.running = False
+projects = load_projects(pj_file_path)
+work_list = load_work(wk_file_path)
 
-    def create_widgets(self):
-        # プロジェクト情報の表示と選択
-        tk.Label(self.master, text="プロジェクト").grid(row=0, column=0)
-        self.project_combobox = ttk.Combobox(self.master, state="readonly")
-        self.project_combobox.grid(row=0, column=1, columnspan=2)
+selected_pjno = tk.StringVar()
+selected_work = tk.StringVar()
+status_text = tk.StringVar(value="作業前")
+elapsed_time_text = tk.StringVar(value="00:00:00")
 
-        # 作業内容の表示と選択
-        tk.Label(self.master, text="作業内容").grid(row=1, column=0)
-        self.work_combobox = ttk.Combobox(self.master, state="readonly")
-        self.work_combobox.grid(row=1, column=1, columnspan=2)
+# プロジェクト選択用のプルダウンメニュー
+pj_combobox = ttk.Combobox(root, textvariable=selected_pjno, values=list(projects.keys()), state="readonly")
+pj_combobox.grid(row=0, column=1)
+ttk.Label(root, text="プロジェクト番号").grid(row=0, column=0)
 
-        # ステータス表示
-        self.status_label = tk.Label(self.master, text="作業前", fg="red")
-        self.status_label.grid(row=2, column=0, columnspan=3)
+# プロジェクト名表示ラベル
+pj_name_label = ttk.Label(root, text="")
+pj_name_label.grid(row=0, column=2)
 
-        # 開始ボタン
-        self.start_button = tk.Button(self.master, text="開始", command=self.start_work)
-        self.start_button.grid(row=3, column=0)
+# 作業内容選択用のプルダウンメニュー
+work_combobox = ttk.Combobox(root, textvariable=selected_work, values=work_list, state="readonly")
+work_combobox.grid(row=1, column=1)
+ttk.Label(root, text="作業内容").grid(row=1, column=0)
 
-        # 終了ボタン
-        self.end_button = tk.Button(self.master, text="終了", command=self.end_work, state=tk.DISABLED)
-        self.end_button.grid(row=3, column=1)
+# 状態表示ラベル
+status_label = ttk.Label(root, textvariable=status_text)
+status_label.grid(row=2, column=1)
 
-        # ログボタン
-        self.log_button = tk.Button(self.master, text="ログを開く", command=self.open_log)
-        self.log_button.grid(row=3, column=2)
+# 経過時間表示ラベル
+elapsed_time_label = ttk.Label(root, textvariable=elapsed_time_text)
+elapsed_time_label.grid(row=2, column=2)
 
-        # ファイルパスの表示と選択ボタン
-        self.create_file_selector("pj-file", self.pj_file, 4)
-        self.create_file_selector("wk-file", self.wk_file, 5)
-        self.create_file_selector("log-file", self.log_file, 6)
+# ボタンのコールバック関数
+def start_work():
+    global start_time
+    if selected_pjno.get() and selected_work.get():
+        start_time = time.time()
+        status_text.set("作業中")
+        pj_combobox.config(state="disabled")
+        work_combobox.config(state="disabled")
+        start_button.config(state="disabled")
+        stop_button.config(state="normal")
+        update_elapsed_time()
+        log_start()
+    else:
+        messagebox.showwarning("Warning", "プロジェクトと作業内容を選択してください。")
 
-    def create_file_selector(self, label, filepath, row):
-        tk.Label(self.master, text=label).grid(row=row, column=0)
-        path_entry = tk.Entry(self.master, width=50)
-        path_entry.insert(0, filepath)
-        path_entry.grid(row=row, column=1)
-        tk.Button(self.master, text="選択", command=lambda: self.select_file(path_entry)).grid(row=row, column=2)
+def stop_work():
+    global end_time
+    end_time = time.time()
+    status_text.set("作業前")
+    elapsed_time_text.set("00:00:00")
+    pj_combobox.config(state="readonly")
+    work_combobox.config(state="readonly")
+    start_button.config(state="normal")
+    stop_button.config(state="disabled")
+    log_end()
 
-    def select_file(self, path_entry):
-        file_path = filedialog.askopenfilename()
-        if file_path:
-            path_entry.delete(0, tk.END)
-            path_entry.insert(0, file_path)
+def update_elapsed_time():
+    if status_text.get() == "作業中":
+        elapsed = time.time() - start_time
+        elapsed_time_text.set(time.strftime("%H:%M:%S", time.gmtime(elapsed)))
+        root.after(1000, update_elapsed_time)
 
-    def load_project_info(self):
-        try:
-            with open(self.pj_file, "r", encoding="utf-8") as f:
-                projects = [line.strip() for line in f.readlines()]
-                self.project_combobox['values'] = projects
-        except FileNotFoundError:
-            messagebox.showerror("エラー", f"{self.pj_file} が見つかりません。")
+def open_log():
+    if os.name == 'nt':
+        os.startfile(log_file_path)
+    elif os.name == 'posix':
+        os.system(f'xdg-open "{log_file_path}"')
+    else:
+        messagebox.showerror("Error", "Unsupported OS")
 
-    def load_work_info(self):
-        try:
-            with open(self.wk_file, "r", encoding="utf-8") as f:
-                works = [line.strip() for line in f.readlines()]
-                self.work_combobox['values'] = works
-        except FileNotFoundError:
-            messagebox.showerror("エラー", f"{self.wk_file} が見つかりません。")
+# ログ記録の関数
+def log_start():
+    if not os.path.exists(log_file_path):
+        with open(log_file_path, 'w') as log_file:
+            log_file.write("no,pjno,pjname,work,stime\n")
+    with open(log_file_path, 'a') as log_file:
+        log_file.write(f"{time.time()},{selected_pjno.get()},{projects[selected_pjno.get()]},{selected_work.get()},{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
 
-    def create_log_filename(self):
-        now = datetime.datetime.now()
-        return os.path.join(os.getcwd(), f"log_{now.strftime('%Y%m')}.txt")
+def log_end():
+    total_time = (end_time - start_time) / 3600
+    with open(log_file_path, 'a') as log_file:
+        log_file.write(f"{time.time()},{selected_pjno.get()},{projects[selected_pjno.get()]},{selected_work.get()},{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')},{total_time}\n")
 
-    def start_work(self):
-        if not self.project_combobox.get() or not self.work_combobox.get():
-            messagebox.showwarning("警告", "プロジェクトと作業内容を選択してください。")
-            return
+# GUIのボタン
+start_button = ttk.Button(root, text="開始", command=start_work)
+start_button.grid(row=3, column=0)
 
-        self.sttime = datetime.datetime.now()
-        self.status_label.config(text="作業中", fg="green")
-        self.start_button.config(state=tk.DISABLED)
-        self.end_button.config(state=tk.NORMAL)
-        self.running = True
-        self.log_action("start")
+stop_button = ttk.Button(root, text="終了", command=stop_work, state="disabled")
+stop_button.grid(row=3, column=1)
 
-    def end_work(self):
-        self.etime = datetime.datetime.now()
-        self.status_label.config(text="作業前", fg="red")
-        self.start_button.config(state=tk.NORMAL)
-        self.end_button.config(state=tk.DISABLED)
-        self.running = False
-        self.log_action("end")
+log_button = ttk.Button(root, text="ログを開く", command=open_log)
+log_button.grid(row=3, column=2)
 
-    def log_action(self, action):
-        if action == "start":
-            with open(self.log_file, "a", encoding="utf-8") as f:
-                f.write(f"{self.no},{self.project_combobox.get()},{self.work_combobox.get()},{self.sttime}\n")
-        elif action == "end":
-            ttime = (self.etime - self.sttime).total_seconds() / 3600
-            with open(self.log_file, "a", encoding="utf-8") as f:
-                f.write(f"{self.project_combobox.get()},{self.work_combobox.get()},{self.etime},{ttime:.2f}\n")
-            self.no += 1
+# ファイル選択ボタン
+def select_pj_file():
+    global pj_file_path
+    pj_file_path = filedialog.askopenfilename()
+    pj_path_label.config(text=pj_file_path)
+    projects.update(load_projects(pj_file_path))
+    pj_combobox.config(values=list(projects.keys()))
 
-    def open_log(self):
-        if os.name == 'nt':  # Windows
-            os.startfile(self.log_file)
-        elif os.name == 'posix':  # macOS, Linux
-            os.system(f"open {self.log_file}" if os.uname().sysname == 'Darwin' else f"xdg-open {self.log_file}")
+def select_wk_file():
+    global wk_file_path
+    wk_file_path = filedialog.askopenfilename()
+    wk_path_label.config(text=wk_file_path)
+    work_list.extend(load_work(wk_file_path))
+    work_combobox.config(values=work_list)
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = WorkLogger(root)
-    root.mainloop()
+def select_log_file():
+    global log_file_path
+    log_file_path = filedialog.askopenfilename()
+    log_path_label.config(text=log_file_path)
+
+pj_path_button = ttk.Button(root, text="プロジェクトファイル選択", command=select_pj_file)
+pj_path_button.grid(row=4, column=0)
+
+wk_path_button = ttk.Button(root, text="作業内容ファイル選択", command=select_wk_file)
+wk_path_button.grid(row=4, column=1)
+
+log_path_button = ttk.Button(root, text="ログファイル選択", command=select_log_file)
+log_path_button.grid(row=4, column=2)
+
+# ファイルパス表示ラベル
+pj_path_label = ttk.Label(root, text=pj_file_path)
+pj_path_label.grid(row=5, column=0, columnspan=3)
+
+wk_path_label = ttk.Label(root, text=wk_file_path)
+wk_path_label.grid(row=6, column=0, columnspan=3)
+
+log_path_label = ttk.Label(root, text=log_file_path)
+log_path_label.grid(row=7, column=0, columnspan=3)
+
+# プロジェクト名の表示を更新する関数
+def update_project_name(event):
+    pj_name_label.config(text=projects.get(selected_pjno.get(), ""))
+
+pj_combobox.bind("<<ComboboxSelected>>", update_project_name)
+
+# メインループの開始
+root.mainloop()
