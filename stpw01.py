@@ -65,13 +65,24 @@ class WorkLogger:
         path_entry = tk.Entry(self.master, width=50)
         path_entry.insert(0, filepath)
         path_entry.grid(row=row, column=1)
-        tk.Button(self.master, text="選択", command=lambda: self.select_file(path_entry)).grid(row=row, column=2)
+        # tk.Button(self.master, text="選択", command=lambda: self.select_file(path_entry)).grid(row=row, column=2)
+        tk.Button(self.master, text="選択", command=lambda: self.select_file(path_entry, label)).grid(row=row, column=2)
 
-    def select_file(self, path_entry):
+    # def select_file(self, path_entry):
+    def select_file(self, path_entry, label):
         file_path = filedialog.askopenfilename()
         if file_path:
             path_entry.delete(0, tk.END)
             path_entry.insert(0, file_path)
+            # 以下追加
+            if label == "pj-file":
+                self.pj_file = file_path
+                self.load_project_info()
+            elif label == "wk-file":
+                self.wk_file = file_path
+                self.load_work_info()
+            elif label == "log-file":
+                self.log_file = file_path
 
     def load_project_info(self):
         try:
