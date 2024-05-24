@@ -28,58 +28,62 @@ class WorkLogger:
 
 
     def create_widgets(self):
+        #Frame
+        self.frame1=tk.Frame(self.master)
+        self.frame2=tk.Frame(self.master)
+
         # プロジェクト情報の表示と選択
-        self.project_name_label=tk.Label(self.master, text="Project")
-        self.project_combobox = ttk.Combobox(self.master, state="readonly")
+        self.project_name_label=tk.Label(self.frame1, text="PJ")
+        self.project_combobox = ttk.Combobox(self.frame1, state="readonly")
 
         # 作業内容の表示と選択
-        self.work_name_label=tk.Label(self.master, text="Work")
-        self.work_combobox = ttk.Combobox(self.master, state="readonly")
+        self.work_name_label=tk.Label(self.frame1, text="Wk")
+        self.work_combobox = ttk.Combobox(self.frame1, state="readonly")
 
         # 時刻を表示するラベル
-        self.time_label = tk.Label(self.master, text="00:00:00")
+        self.time_label = tk.Label(self.frame1, text="00:00:00")
 
         # ステータス表示
-        self.status_label = tk.Label(self.master, text="Wait", fg="red")
+        self.status_label = tk.Label(self.frame1, text="Wait", fg="red")
 
         # 開始ボタン
-        self.start_button = tk.Button(self.master, text="START", command=self.start_work)
+        self.start_button = tk.Button(self.frame1, text="START", command=self.start_work)
         # 終了ボタン
-        self.end_button = tk.Button(self.master, text="STOP", command=self.end_work, state=tk.DISABLED)
+        self.end_button = tk.Button(self.frame1, text="STOP", command=self.end_work, state=tk.DISABLED)
         # ログボタン
-        self.log_button = tk.Button(self.master, text="Log", command=self.open_log)
+        self.log_button = tk.Button(self.frame1, text="Log", command=self.open_log)
         # 経過時間表示ラベルの追加
-        self.elapsed_time_label = tk.Label(self.master, text="00:00:00")
+        self.elapsed_time_label = tk.Label(self.frame1, text="00:00:00")
 
         # ファイルパスの表示と選択ボタン
         self.create_file_selector("pj-file: ", self.pj_file, 5)
         self.create_file_selector("wk-file: ", self.wk_file, 6)
         self.create_file_selector("log-file: ", self.log_file, 7)
 
-        self.style = ttk.Style()
-        self.style.configure("black.TSeparator", background="black")
-        self.separator = ttk.Separator(self.master, orient="horizontal", style="black.TSeparator")
-
         #配置
-        self.project_name_label.grid(row=0, column=0)
-        self.project_combobox.grid(row=0, column=1, columnspan=2)
-        self.work_name_label.grid(row=1, column=0)
-        self.work_combobox.grid(row=1, column=1, columnspan=2)
-        self.time_label.grid(row=0, column=3, columnspan=2)
-        self.status_label.grid(row=1, column=3, columnspan=2)
-        self.start_button.grid(row=0, column=5)
-        self.end_button.grid(row=1, column=5)
-        self.log_button.grid(row=2, column=5)
-        self.elapsed_time_label.grid(row=2, column=3, columnspan=2)
-        self.separator.grid(row=4,column=0,columnspan=6)
+        self.frame1.grid(row=0,column=0,sticky=tk.NE, pady=10)
+        self.frame2.grid(row=1,column=0,sticky=tk.NW, pady=10,padx=5)
+
+        self.project_name_label.grid(row=0, column=2,padx=10)
+        self.project_combobox.grid(row=0, column=3, columnspan=2)
+        self.work_name_label.grid(row=1, column=2,padx=10)
+        self.work_combobox.grid(row=1, column=3, columnspan=2)
+
+        self.time_label.grid(row=0, column=0, columnspan=2)
+        self.status_label.grid(row=1, column=0, columnspan=2)
+        self.elapsed_time_label.grid(row=2, column=0, columnspan=2)
+
+        self.start_button.grid(row=0, column=5, padx=10,sticky=tk.E)
+        self.end_button.grid(row=1, column=5, padx=10,sticky=tk.E)
+        self.log_button.grid(row=2, column=5, padx=10,sticky=tk.E)
 
     def create_file_selector(self, label, filepath, row):
-        tk.Label(self.master, text=label).grid(row=row, column=0)
-        path_entry = tk.Label(self.master,width=35,text=filepath,anchor=tk.W)
+        tk.Label(self.frame2, text=label).grid(row=row, column=0)
+        path_entry = tk.Label(self.frame2,width=35,text=filepath,anchor=tk.W)
         # path_entry = tk.Entry(self.master, width=50)
         # path_entry.insert(0, filepath)
         path_entry.grid(row=row, column=1, columnspan=4)
-        tk.Button(self.master, text="load", command=lambda: self.select_file(path_entry, label)).grid(row=row, column=5)
+        tk.Button(self.frame2, text="load", command=lambda: self.select_file(path_entry, label)).grid(row=row, column=5)
 
     # def select_file(self, path_entry):
     def select_file(self, path_entry, label):
@@ -139,8 +143,8 @@ class WorkLogger:
         current_time = datetime.datetime.now().strftime('%H:%M')
         # ラベルのテキストを現在の時刻に更新します
         self.time_label.config(text=current_time)
-        # 1秒後にこの関数を再び呼び出して時刻を更新し続けます
-        self.master.after(1000, self.update_time)
+        # 3秒後にこの関数を再び呼び出して時刻を更新し続けます
+        self.master.after(3000, self.update_time)
 
     def start_work(self):
         if not self.project_combobox.get() or not self.work_combobox.get():
