@@ -9,6 +9,9 @@ class WorkLogger:
         self.master = master
         self.master.title("Stopwatch for working")
 
+        # ファイルロードボタンを保持する辞書
+        self.load_buttons = {}
+
         # 初期ファイルパス
         self.pj_file = os.path.join(os.getcwd(), "pj.txt")
         self.wk_file = os.path.join(os.getcwd(), "wk.txt")
@@ -26,6 +29,9 @@ class WorkLogger:
 
         self.update_time()
 
+        #計測中に終了できないような処理を追加
+        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
+
 
     def create_widgets(self):
         #Frame
@@ -40,11 +46,17 @@ class WorkLogger:
         self.work_name_label=tk.Label(self.frame1, text="Wk")
         self.work_combobox = ttk.Combobox(self.frame1, state="readonly")
 
+        #PJ,Wkのリロード
+        self.reload_button = tk.Button(self.frame1, text="Reload PJ and Wk", font=("",8) , command=self.reload_pjwk)
+
         # 時刻を表示するラベル
-        self.time_label = tk.Label(self.frame1, text="00:00:00")
+        self.time_label = tk.Label(self.frame1, text="00:00", font=("",20))
 
         # ステータス表示
-        self.status_label = tk.Label(self.frame1, text="Wait", fg="red")
+        self.status_label = tk.Label(self.frame1, text="Wait", fg="red", font=("",14))
+        self.elapsed_time_label = tk.Label(self.frame1, text="0:00:00", font=("",18))
+        self.status_pj_wk = tk.Label(self.frame1, text="PJ/WORK",  font=("",10))
+
 
         # 開始ボタン
         self.start_button = tk.Button(self.frame1, text="START", command=self.start_work)
@@ -52,8 +64,7 @@ class WorkLogger:
         self.end_button = tk.Button(self.frame1, text="STOP", command=self.end_work, state=tk.DISABLED)
         # ログボタン
         self.log_button = tk.Button(self.frame1, text="Log", command=self.open_log)
-        # 経過時間表示ラベルの追加
-        self.elapsed_time_label = tk.Label(self.frame1, text="00:00:00")
+
 
         # ファイルパスの表示と選択ボタン
         self.create_file_selector("pj-file: ", self.pj_file, 5)
@@ -68,29 +79,30 @@ class WorkLogger:
         self.project_combobox.grid(row=0, column=3, columnspan=2)
         self.work_name_label.grid(row=1, column=2,padx=10)
         self.work_combobox.grid(row=1, column=3, columnspan=2)
+        self.reload_button.grid(row=2, column=3, columnspan=2)
 
         self.time_label.grid(row=0, column=0, columnspan=2)
         self.status_label.grid(row=1, column=0, columnspan=2)
         self.elapsed_time_label.grid(row=2, column=0, columnspan=2)
+        self.status_pj_wk.grid(row=3, column=0, columnspan=5,sticky=tk.NW)
 
         self.start_button.grid(row=0, column=5, padx=10,sticky=tk.E)
         self.end_button.grid(row=1, column=5, padx=10,sticky=tk.E)
         self.log_button.grid(row=2, column=5, padx=10,sticky=tk.E)
 
     def create_file_selector(self, label, filepath, row):
-        tk.Label(self.frame2, text=label).grid(row=row, column=0)
-        path_entry = tk.Label(self.frame2,width=35,text=filepath,anchor=tk.W)
-        # path_entry = tk.Entry(self.master, width=50)
-        # path_entry.insert(0, filepath)
+        tk.Label(self.frame2, text=label, font=("",8)).grid(row=row, column=0)
+        path_entry = tk.Label(self.frame2,width=35,text=filepath,anchor=tk.W, font=("",8))
         path_entry.grid(row=row, column=1, columnspan=4)
-        tk.Button(self.frame2, text="load", command=lambda: self.select_file(path_entry, label)).grid(row=row, column=5)
+        load_button = tk.Button(self.frame2, text="load", font=("",8), command=lambda: self.select_file(path_entry, label))
+        load_button.grid(row=row, column=5)
+        # ボタンを辞書に保存
+        self.load_buttons[label] = load_button
 
     # def select_file(self, path_entry):
     def select_file(self, path_entry, label):
         file_path = filedialog.askopenfilename()
         if file_path:
-            # path_entry.delete(0, tk.END)
-            # path_entry.insert(0, file_path)
             path_entry.config(text=file_path)
             # 以下追加
             if label == "pj-file":
@@ -137,14 +149,19 @@ class WorkLogger:
             return 0
         return 0
 
+    # リロードメソッド
+    def reload_pjwk(self):
+        self.load_project_info()
+        self.load_work_info()
+
     # 時刻を更新するメソッド
     def update_time(self):
         # 現在の時刻を取得します('時:分:秒' の形式)
         current_time = datetime.datetime.now().strftime('%H:%M')
         # ラベルのテキストを現在の時刻に更新します
         self.time_label.config(text=current_time)
-        # 3秒後にこの関数を再び呼び出して時刻を更新し続けます
-        self.master.after(3000, self.update_time)
+        # 5秒後にこの関数を再び呼び出して時刻を更新し続けます
+        self.master.after(5000, self.update_time)
 
     def start_work(self):
         if not self.project_combobox.get() or not self.work_combobox.get():
@@ -153,14 +170,24 @@ class WorkLogger:
 
         self.sttime = datetime.datetime.now()
         self.status_label.config(text="Working", fg="green")
+        self.pj_dat = str(self.project_combobox.get()).split(",",1)
+        self.status_pj_wk.config(text=self.pj_dat[0] + "/" + self.pj_dat[1]  + "/" + self.work_combobox.get())
         self.start_button.config(state=tk.DISABLED)
         self.end_button.config(state=tk.NORMAL)
+        self.project_combobox.config(state=tk.DISABLED)
+        self.work_combobox.config(state=tk.DISABLED)
         self.running = True
         self.log_action("start")
+
+        self.start_button.config(state=tk.DISABLED)
 
         # 経過時間ラベルのリセット
         self.elapsed_time_label.config(text="00:00:00")
         self.update_elapsed_time()
+
+        # ファイルロードボタンを無効化（グレーアウト）
+        for load_buttons in self.load_buttons.values():
+            load_buttons.config(state=tk.DISABLED)
 
     def update_elapsed_time(self):
         if self.running:
@@ -176,7 +203,13 @@ class WorkLogger:
         self.start_button.config(state=tk.NORMAL)
         self.end_button.config(state=tk.DISABLED)
         self.running = False
+        self.project_combobox.config(state=tk.NORMAL)
+        self.work_combobox.config(state=tk.NORMAL)
         self.log_action("end")
+
+        # ファイルロードボタンを有効化
+        for load_buttons in self.load_buttons.values():
+            load_buttons.config(state=tk.NORMAL)
 
     def log_action(self, action):
         if action == "start":
@@ -197,6 +230,17 @@ class WorkLogger:
             os.startfile(self.log_file)
         elif os.name == 'posix':  # macOS, Linux
             os.system(f"open {self.log_file}" if os.uname().sysname == 'Darwin' else f"xdg-open {self.log_file}")
+
+    # ウィンドウを閉じる際の動作を定義
+    def on_closing(self):
+        if self.running:
+            # もしタイマーが計測中なら、ユーザーに終了確認のメッセージボックスを表示
+            if messagebox.askokcancel("Quit", "Timer is running. Do you want to quit?"):
+                self.master.destroy()  # OKが押されたらウィンドウを閉じる
+        else:
+            self.master.destroy()  # タイマーが計測中でなければ、直接ウィンドウを閉じる
+
+
 
 if __name__ == "__main__":
     root = tk.Tk()
