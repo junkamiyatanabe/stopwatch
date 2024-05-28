@@ -65,6 +65,8 @@ class WorkLogger:
         self.open_pj_button = tk.Button(self.frame2, text="PJ", font=("",8), command=self.open_file(self.pj_file))
         self.open_wk_button = tk.Button(self.frame2, text="WK", font=("",8), command=self.open_file(self.wk_file))
         self.open_log_button = tk.Button(self.frame2, text="Log", font=("",8), command=self.open_file(self.log_file))
+        # PATHの表示
+        self.path_label = tk.Label(self.frame2, text="File Path : " + os.getcwd(), font=("",8))
 
 
         #配置
@@ -88,6 +90,7 @@ class WorkLogger:
         self.open_wk_button.grid(row=0, column=1,padx=5)
         self.reload_button.grid(row=0, column=2,padx=5)
         self.open_log_button.grid(row=0, column=3,padx=15)
+        self.path_label.grid(row=2,column=0,columnspan=4)
 
 
 
