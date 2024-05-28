@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import datetime
 import os
+import subprocess
 
 class WorkLogger:
 
@@ -67,7 +68,8 @@ class WorkLogger:
         self.open_log_button = tk.Button(self.frame2, text="Log", font=("",8), command=self.open_file(self.log_file))
         # PATHの表示
         self.path_label = tk.Label(self.frame2, text="File Path : " + os.getcwd(), font=("",8))
-
+        # いろいろの表示
+        self.data_label = tk.Label(self.frame2, text="----" , font=("",8))
 
         #配置
         self.frame1.grid(row=0,column=0,sticky=tk.NE, pady=10)
@@ -91,6 +93,7 @@ class WorkLogger:
         self.reload_button.grid(row=0, column=2,padx=5)
         self.open_log_button.grid(row=0, column=3,padx=15)
         self.path_label.grid(row=2,column=0,columnspan=4)
+        self.data_label.grid(row=3,column=0,columnspan=4)
 
 
 
@@ -148,6 +151,7 @@ class WorkLogger:
     def reload_pjwk(self):
         self.load_project_info()
         self.load_work_info()
+        self.data_label.config(text="reload PJ + WORK ")
 
     # 時刻を更新するメソッド
     def update_time(self):
@@ -178,6 +182,7 @@ class WorkLogger:
         self.work_combobox.config(state=tk.DISABLED)
         self.running = True
         self.log_action("start")
+        self.data_label.config(text="start")
 
         self.start_button.config(state=tk.DISABLED)
 
@@ -206,6 +211,7 @@ class WorkLogger:
         self.project_combobox.config(state=tk.NORMAL)
         self.work_combobox.config(state=tk.NORMAL)
         self.log_action("end")
+        self.data_label.config(text="stop")
 
         # ファイルロードボタンを有効化
         for load_buttons in self.load_buttons.values():
@@ -225,21 +231,32 @@ class WorkLogger:
                 f.write(f"{self.no},{self.project_combobox.get()},{self.work_combobox.get()},{sttime_str},{etime_str},{ttime:.2f}\n")
             self.no += 1
 
-    #def open_log(self):
-    #    if os.name == 'nt':  # Windows
-    #        os.startfile(self.log_file)
-    #    elif os.name == 'posix':  # macOS, Linux
-    #        os.system(f"open {self.log_file}" if os.uname().sysname == 'Darwin' else f"xdg-open {self.log_file}")
-
     def open_file(self,f_path):
         # ボタン生成時にself.コマンド(xx)が実行され、クリック時にはself.コマンド(xx)()が実行され、何も起こらない
         # Inner Function（内部関数）を使用して回避する
         def inner():
-            # print(f_path)
-            if os.name == 'nt':  # Windows
-                os.startfile(self.f_path)
-            elif os.name == 'posix':  # macOS, Linux
-                os.system(f"open {self.f_path}" if os.uname().sysname == 'Darwin' else f"xdg-open {self.f_path}")
+            try:
+                # Windowsの場合
+                if os.name == 'nt':
+                    # subprocess.Popenを使用してプロセスを開始し、標準出力と標準エラー出力をキャプチャ
+                    process = subprocess.Popen(['start', self.f_path], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                # macOSやLinuxの場合
+                elif os.name == 'posix':
+                    # コマンドを作成：macOSなら'open'、Linuxなら'xdg-open'を使用
+                    cmd = f"open {self.f_path}" if os.uname().sysname == 'Darwin' else f"xdg-open {self.f_path}"
+                    # subprocess.Popenを使用してプロセスを開始し、標準出力と標準エラー出力をキャプチャ
+                    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+                # プロセスが終了するのを待ち、標準出力と標準エラー出力を取得
+                stdout, stderr = process.communicate()
+
+                # 標準出力と標準エラー出力をデコードして文字列に変換し、ラベルに表示
+                result = stdout.decode('utf-8') + stderr.decode('utf-8')
+                self.data_label.config(text=result)
+
+            except Exception as e:
+                # 例外が発生した場合、エラーメッセージをラベルに表示
+                self.data_label.config(text=f"An error occurred: {str(e)}")
         return inner
 
     # ウィンドウを閉じる際の動作を定義
