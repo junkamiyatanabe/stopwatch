@@ -29,7 +29,6 @@ class WorkLogger:
         self.no = self.get_last_log_number() + 1
         self.running = False
 
-
         self.colon_visible = True
         self.update_time()
 
@@ -46,15 +45,13 @@ class WorkLogger:
 
         # 境界線
         self.sep_style = ttk.Style()
-        self.sep_style.configure("Gray.TSeparator", background="GRAY")
+        self.sep_style.configure("Gray.TSeparator", background="DarkGrey")
         self.sep_a = ttk.Separator(self.master, orient="vertical", style="Gray.TSeparator")
         self.sep_b = ttk.Separator(self.master, orient="horizontal", style="Gray.TSeparator")
         self.sep_c = ttk.Separator(self.master, orient="horizontal", style="Gray.TSeparator")
 
         # 時刻を表示するラベル
         self.time_label = tk.Label(self.frame1, text="00:00",anchor=tk.CENTER, font=("IPAゴシック",20))
-        # ステータス表示1
-        self.status_label = tk.Label(self.frame1, text="  Wait ", fg="red",anchor=tk.CENTER, font=("IPAゴシック",14))
 
         # プロジェクト,作業内容の表示と選択
         self.project_name_label=tk.Label(self.frame2, text="PJ")
@@ -65,37 +62,36 @@ class WorkLogger:
         self.start_button = tk.Button(self.frame2, text="  START  ", command=self.start_work)
         self.end_button = tk.Button(self.frame2, text="   STOP   ", command=self.end_work, state=tk.DISABLED)
 
-        # ステータス表示2
+        # ステータス表示とログボタン
         self.elapsed_time_label = tk.Label(self.frame3, text="0:00:00",anchor=tk.CENTER, font=("IPAゴシック",18))
-        self.status_pj_wk = tk.Label(self.frame3, text="PJ/WORK",  font=("IPAゴシック",10))
+        self.status_label = tk.Label(self.frame3, text="  Wait ", fg="red",anchor=tk.CENTER, font=("IPAゴシック",14))
+        self.status_pj_wk_a = tk.Label(self.frame3, text="PJ No.",  font=("IPAゴシック",8),anchor=tk.W)
+        self.status_pj_wk_b = tk.Label(self.frame3, text="PJ Name",  font=("IPAゴシック",8),anchor=tk.W)
+        self.status_pj_wk_c = tk.Label(self.frame3, text="WORK",  font=("IPAゴシック",8),anchor=tk.W)
+        self.status_pj_wk_space = tk.Label(self.frame3, text="",  font=("IPAゴシック",8),anchor=tk.W,width=50)
+        self.open_log_button = tk.Button(self.frame3, text="Log", font=("", 8), command=lambda: self.open_file(self.log_file))
 
         #PJ,Wkのリロード
         self.reload_button = tk.Button(self.frame4, text="Reload PJ+Wk", font=("",8) , command=self.reload_pjwk)
         # 各ファイルを開くボタン。ここでラムダ式を使用して、open_fileメソッドにファイルパスを引数として渡す。
         self.open_pj_button = tk.Button(self.frame4, text="PJ", font=("", 8), command=lambda: self.open_file(self.pj_file))
         self.open_wk_button = tk.Button(self.frame4, text="WK", font=("", 8), command=lambda: self.open_file(self.wk_file))
-        self.open_log_button = tk.Button(self.frame4, text="Log", font=("", 8), command=lambda: self.open_file(self.log_file))
 
         # PATHの表示
-        self.path_label = tk.Label(self.frame4, text="File Path : " + os.getcwd(), font=("",8),width=60)
-        # いろいろの表示
-        self.data_label = tk.Label(self.frame4, text="----" , font=("",8))
-
-
+        self.path_label = tk.Label(self.frame4, text="File Path : " + os.getcwd(), font=("",8))
 
         #配置
         # self.master.columnconfigure(index=0,weight=1)
         # self.master.columnconfigure(index=1,weight=3)
         self.frame1.grid(row=0,column=0, sticky=tk.NSEW, padx=5, pady=5)
         self.frame2.grid(row=0,column=2, sticky=tk.NSEW, padx=5, pady=5)
-        self.frame3.grid(row=2,column=0, columnspan=3, sticky=tk.NSEW , padx=5, pady=5)
+        self.frame3.grid(row=2,column=0, columnspan=3, sticky=tk.NSEW , padx=5, pady=(5,0))
         self.frame4.grid(row=4,column=0, columnspan=3, padx=5, pady=5)
         self.sep_a.grid(row=0, column=1, sticky="ns", padx=5, pady=5)
         self.sep_b.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
-        self.sep_c.grid(row=3, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
+        self.sep_c.grid(row=3, column=0, columnspan=3, sticky="ew", padx=5)
 
-        self.time_label.grid(row=0, column=0)
-        self.status_label.grid(row=1, column=0)
+        self.time_label.grid(row=0, column=0,padx=(10,5))
 
         self.project_name_label.grid(row=0, column=0,padx=10)
         self.project_combobox.grid(row=0, column=1)
@@ -104,19 +100,19 @@ class WorkLogger:
         self.start_button.grid(row=0, column=2, padx=10,sticky=tk.E)
         self.end_button.grid(row=1, column=2, padx=10,sticky=tk.E)
 
-        self.elapsed_time_label.grid(row=0, column=0, padx=10)
-        self.status_pj_wk.grid(row=0, column=1,sticky=tk.W)
+        self.elapsed_time_label.grid(row=0,rowspan=2, column=0, padx=10)
+        self.status_label.grid(row=2, column=0)
+        self.status_pj_wk_a.grid(row=0, column=1,sticky=tk.W)
+        self.status_pj_wk_b.grid(row=1, column=1,columnspan=2,sticky=tk.W)
+        self.status_pj_wk_c.grid(row=2, column=1,columnspan=2,sticky=tk.W)
+        self.status_pj_wk_space.grid(row=3, column=1,sticky=tk.W)
+        self.open_log_button.grid(row=1,rowspan=3, column=3,padx=15)
 
         self.open_pj_button.grid(row=0, column=0,padx=5)
         self.open_wk_button.grid(row=0, column=1,padx=5)
         self.reload_button.grid(row=0, column=2,padx=5)
-        self.open_log_button.grid(row=0, column=3,padx=15)
         self.path_label.grid(row=2,column=0,columnspan=4)
-        self.data_label.grid(row=3,column=0,columnspan=4)
 
-
-
-    # def select_file(self, path_entry):
     def select_file(self, path_entry, label):
         file_path = filedialog.askopenfilename()
         if file_path:
@@ -170,7 +166,6 @@ class WorkLogger:
     def reload_pjwk(self):
         self.load_project_info()
         self.load_work_info()
-        self.data_label.config(text="reload PJ + WORK ")
 
     # 時刻を更新するメソッド
     def update_time(self):
@@ -194,14 +189,16 @@ class WorkLogger:
         self.sttime = datetime.datetime.now()
         self.status_label.config(text="Working", fg="green")
         self.pj_dat = str(self.project_combobox.get()).split(",",1)
-        self.status_pj_wk.config(text=self.pj_dat[0] + "/" + self.pj_dat[1]  + "/" + self.work_combobox.get())
+        # self.status_pj_wk.config(text=self.pj_dat[0] + "/" + self.pj_dat[1]  + "/" + self.work_combobox.get())
+        self.status_pj_wk_a.config(text=self.pj_dat[0] )
+        self.status_pj_wk_b.config(text=self.pj_dat[1] )
+        self.status_pj_wk_c.config(text=self.work_combobox.get())
         self.start_button.config(state=tk.DISABLED)
         self.end_button.config(state=tk.NORMAL)
         self.project_combobox.config(state=tk.DISABLED)
         self.work_combobox.config(state=tk.DISABLED)
         self.running = True
         self.log_action("start")
-        self.data_label.config(text="start")
 
         self.start_button.config(state=tk.DISABLED)
 
@@ -230,7 +227,6 @@ class WorkLogger:
         self.project_combobox.config(state=tk.NORMAL)
         self.work_combobox.config(state=tk.NORMAL)
         self.log_action("end")
-        self.data_label.config(text="stop")
 
         # ファイルロードボタンを有効化
         for load_buttons in self.load_buttons.values():
