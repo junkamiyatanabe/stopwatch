@@ -38,57 +38,74 @@ class WorkLogger:
 
 
     def create_widgets(self):
-        #Frame
-        self.frame1=tk.Frame(self.master)
-        self.frame2=tk.Frame(self.master)
+        # Frame
+        self.frame1=tk.Frame(self.master)#, bd=2, relief=tk.FLAT,bg="RED")
+        self.frame2=tk.Frame(self.master)#, bd=2, relief=tk.FLAT,bg="BLUE")
+        self.frame3=tk.Frame(self.master)#, bd=2, relief=tk.FLAT,bg="YELLOW")
+        self.frame4=tk.Frame(self.master)#, bd=2, relief=tk.FLAT,bg="GREEN")
 
-        # プロジェクト情報の表示と選択
-        self.project_name_label=tk.Label(self.frame1, text="PJ")
-        self.project_combobox = ttk.Combobox(self.frame1, state="readonly")
-        # 作業内容の表示と選択
-        self.work_name_label=tk.Label(self.frame1, text="Wk")
-        self.work_combobox = ttk.Combobox(self.frame1, state="readonly")
+        # 境界線
+        self.sep_style = ttk.Style()
+        self.sep_style.configure("Gray.TSeparator", background="GRAY")
+        self.sep_a = ttk.Separator(self.master, orient="vertical", style="Gray.TSeparator")
+        self.sep_b = ttk.Separator(self.master, orient="horizontal", style="Gray.TSeparator")
+        self.sep_c = ttk.Separator(self.master, orient="horizontal", style="Gray.TSeparator")
+
         # 時刻を表示するラベル
-        self.time_label = tk.Label(self.frame1, text="00:00", font=("IPAゴシック",20))
-        # ステータス表示
-        self.status_label = tk.Label(self.frame1, text="Wait", fg="red", font=("",14))
-        self.elapsed_time_label = tk.Label(self.frame1, text="0:00:00", font=("IPAゴシック",18))
-        self.status_pj_wk = tk.Label(self.frame1, text="PJ/WORK",  font=("",10))
+        self.time_label = tk.Label(self.frame1, text="00:00",anchor=tk.CENTER, font=("IPAゴシック",20))
+        # ステータス表示1
+        self.status_label = tk.Label(self.frame1, text="  Wait ", fg="red",anchor=tk.CENTER, font=("IPAゴシック",14))
 
-        # 開始ボタン
-        self.start_button = tk.Button(self.frame1, text="  START  ", command=self.start_work)
-        # 終了ボタン
-        self.end_button = tk.Button(self.frame1, text="   STOP   ", command=self.end_work, state=tk.DISABLED)
+        # プロジェクト,作業内容の表示と選択
+        self.project_name_label=tk.Label(self.frame2, text="PJ")
+        self.project_combobox = ttk.Combobox(self.frame2, state="readonly")
+        self.work_name_label=tk.Label(self.frame2, text="Wk")
+        self.work_combobox = ttk.Combobox(self.frame2, state="readonly")
+        # 開始終了ボタン
+        self.start_button = tk.Button(self.frame2, text="  START  ", command=self.start_work)
+        self.end_button = tk.Button(self.frame2, text="   STOP   ", command=self.end_work, state=tk.DISABLED)
+
+        # ステータス表示2
+        self.elapsed_time_label = tk.Label(self.frame3, text="0:00:00",anchor=tk.CENTER, font=("IPAゴシック",18))
+        self.status_pj_wk = tk.Label(self.frame3, text="PJ/WORK",  font=("IPAゴシック",10))
 
         #PJ,Wkのリロード
-        self.reload_button = tk.Button(self.frame2, text="Reload PJ+Wk", font=("",8) , command=self.reload_pjwk)
-
+        self.reload_button = tk.Button(self.frame4, text="Reload PJ+Wk", font=("",8) , command=self.reload_pjwk)
         # 各ファイルを開くボタン。ここでラムダ式を使用して、open_fileメソッドにファイルパスを引数として渡す。
-        self.open_pj_button = tk.Button(self.frame2, text="PJ", font=("", 8), command=lambda: self.open_file(self.pj_file))
-        self.open_wk_button = tk.Button(self.frame2, text="WK", font=("", 8), command=lambda: self.open_file(self.wk_file))
-        self.open_log_button = tk.Button(self.frame2, text="Log", font=("", 8), command=lambda: self.open_file(self.log_file))
+        self.open_pj_button = tk.Button(self.frame4, text="PJ", font=("", 8), command=lambda: self.open_file(self.pj_file))
+        self.open_wk_button = tk.Button(self.frame4, text="WK", font=("", 8), command=lambda: self.open_file(self.wk_file))
+        self.open_log_button = tk.Button(self.frame4, text="Log", font=("", 8), command=lambda: self.open_file(self.log_file))
 
         # PATHの表示
-        self.path_label = tk.Label(self.frame2, text="File Path : " + os.getcwd(), font=("",8))
+        self.path_label = tk.Label(self.frame4, text="File Path : " + os.getcwd(), font=("",8),width=60)
         # いろいろの表示
-        self.data_label = tk.Label(self.frame2, text="----" , font=("",8))
+        self.data_label = tk.Label(self.frame4, text="----" , font=("",8))
+
+
 
         #配置
-        self.frame1.grid(row=0,column=0,sticky=tk.NE, pady=10)
-        self.frame2.grid(row=1,column=0, sticky=tk.NE ,pady=5)
+        # self.master.columnconfigure(index=0,weight=1)
+        # self.master.columnconfigure(index=1,weight=3)
+        self.frame1.grid(row=0,column=0, sticky=tk.NSEW, padx=5, pady=5)
+        self.frame2.grid(row=0,column=2, sticky=tk.NSEW, padx=5, pady=5)
+        self.frame3.grid(row=2,column=0, columnspan=3, sticky=tk.NSEW , padx=5, pady=5)
+        self.frame4.grid(row=4,column=0, columnspan=3, padx=5, pady=5)
+        self.sep_a.grid(row=0, column=1, sticky="ns", padx=5, pady=5)
+        self.sep_b.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
+        self.sep_c.grid(row=3, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
 
-        self.project_name_label.grid(row=0, column=2,padx=10)
-        self.project_combobox.grid(row=0, column=3, columnspan=2)
-        self.work_name_label.grid(row=1, column=2,padx=10)
-        self.work_combobox.grid(row=1, column=3, columnspan=2)
+        self.time_label.grid(row=0, column=0)
+        self.status_label.grid(row=1, column=0)
 
-        self.time_label.grid(row=0, column=0, columnspan=2)
-        self.status_label.grid(row=1, column=0, columnspan=2)
-        self.elapsed_time_label.grid(row=2, column=0, columnspan=2)
-        self.status_pj_wk.grid(row=2, column=3, columnspan=5,sticky=tk.W)
+        self.project_name_label.grid(row=0, column=0,padx=10)
+        self.project_combobox.grid(row=0, column=1)
+        self.work_name_label.grid(row=1, column=0,padx=10)
+        self.work_combobox.grid(row=1, column=1)
+        self.start_button.grid(row=0, column=2, padx=10,sticky=tk.E)
+        self.end_button.grid(row=1, column=2, padx=10,sticky=tk.E)
 
-        self.start_button.grid(row=0, column=5, padx=10,sticky=tk.E)
-        self.end_button.grid(row=1, column=5, padx=10,sticky=tk.E)
+        self.elapsed_time_label.grid(row=0, column=0, padx=10)
+        self.status_pj_wk.grid(row=0, column=1,sticky=tk.W)
 
         self.open_pj_button.grid(row=0, column=0,padx=5)
         self.open_wk_button.grid(row=0, column=1,padx=5)
@@ -251,8 +268,6 @@ class WorkLogger:
                 self.master.destroy()  # OKが押されたらウィンドウを閉じる
         else:
             self.master.destroy()  # タイマーが計測中でなければ、直接ウィンドウを閉じる
-
-
 
 if __name__ == "__main__":
     root = tk.Tk()
