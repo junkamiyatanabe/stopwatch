@@ -62,10 +62,12 @@ class WorkLogger:
 
         #PJ,Wkのリロード
         self.reload_button = tk.Button(self.frame2, text="Reload PJ+Wk", font=("",8) , command=self.reload_pjwk)
-        # 各ファイルの開くボタン
-        self.open_pj_button = tk.Button(self.frame2, text="PJ", font=("",8), command=self.open_file(self.pj_file))
-        self.open_wk_button = tk.Button(self.frame2, text="WK", font=("",8), command=self.open_file(self.wk_file))
-        self.open_log_button = tk.Button(self.frame2, text="Log", font=("",8), command=self.open_file(self.log_file))
+
+        # 各ファイルを開くボタン。ここでラムダ式を使用して、open_fileメソッドにファイルパスを引数として渡す。
+        self.open_pj_button = tk.Button(self.frame2, text="PJ", font=("", 8), command=lambda: self.open_file(self.pj_file))
+        self.open_wk_button = tk.Button(self.frame2, text="WK", font=("", 8), command=lambda: self.open_file(self.wk_file))
+        self.open_log_button = tk.Button(self.frame2, text="Log", font=("", 8), command=lambda: self.open_file(self.log_file))
+
         # PATHの表示
         self.path_label = tk.Label(self.frame2, text="File Path : " + os.getcwd(), font=("",8))
         # いろいろの表示
@@ -231,33 +233,15 @@ class WorkLogger:
                 f.write(f"{self.no},{self.project_combobox.get()},{self.work_combobox.get()},{sttime_str},{etime_str},{ttime:.2f}\n")
             self.no += 1
 
-    def open_file(self,f_path):
-        # ボタン生成時にself.コマンド(xx)が実行され、クリック時にはself.コマンド(xx)()が実行され、何も起こらない
-        # Inner Function（内部関数）を使用して回避する
-        def inner():
-            try:
-                # Windowsの場合
-                if os.name == 'nt':
-                    # subprocess.Popenを使用してプロセスを開始し、標準出力と標準エラー出力をキャプチャ
-                    process = subprocess.Popen(['start', self.f_path], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                # macOSやLinuxの場合
-                elif os.name == 'posix':
-                    # コマンドを作成：macOSなら'open'、Linuxなら'xdg-open'を使用
-                    cmd = f"open {self.f_path}" if os.uname().sysname == 'Darwin' else f"xdg-open {self.f_path}"
-                    # subprocess.Popenを使用してプロセスを開始し、標準出力と標準エラー出力をキャプチャ
-                    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-                # プロセスが終了するのを待ち、標準出力と標準エラー出力を取得
-                stdout, stderr = process.communicate()
-
-                # 標準出力と標準エラー出力をデコードして文字列に変換し、ラベルに表示
-                result = stdout.decode('utf-8') + stderr.decode('utf-8')
-                self.data_label.config(text=result)
-
-            except Exception as e:
-                # 例外が発生した場合、エラーメッセージをラベルに表示
-                self.data_label.config(text=f"An error occurred: {str(e)}")
-        return inner
+    def open_file(self, f_path):
+        # ファイルを開くための内部関数。OSに応じて適切なコマンドを実行します。
+        if os.name == 'nt':  # Windowsの場合
+            os.startfile(f_path)
+        elif os.name == 'posix':  # macOS, Linuxの場合
+            if os.uname().sysname == 'Darwin':  # macOS
+                subprocess.call(["open", f_path])
+            else:  # Linux
+                subprocess.call(["xdg-open", f_path])
 
     # ウィンドウを閉じる際の動作を定義
     def on_closing(self):
