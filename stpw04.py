@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import datetime
 import os
+import sys
 import subprocess
 
 class WorkLogger:
@@ -58,17 +59,20 @@ class WorkLogger:
         self.project_combobox = ttk.Combobox(self.frame2, state="readonly", font=("IPAゴシック",9))
         self.work_name_label=tk.Label(self.frame2, text="Wk", font=("IPAゴシック",9))
         self.work_combobox = ttk.Combobox(self.frame2, state="readonly", font=("IPAゴシック",9))
+        # コメント欄
+        self.textbox = tk.Text(self.frame2, height=1, width=20)
+        self.textbox.insert(tk.END, "comment")
         # 開始終了ボタン
         self.start_button = tk.Button(self.frame2, text="START", command=self.start_work, font=("IPAゴシック",9))
         self.end_button = tk.Button(self.frame2, text=" STOP", command=self.end_work, state=tk.DISABLED, font=("IPAゴシック",9))
 
         # ステータス表示とログボタン
         self.elapsed_time_label = tk.Label(self.frame3, text="0:00:00",anchor=tk.CENTER, font=("IPAゴシック",14))
-        self.status_label = tk.Label(self.frame3, text="  Wait ", fg="red",anchor=tk.CENTER, font=("IPAゴシック",10))
+        self.status_label = tk.Label(self.frame3, text="  Wait ", fg="red",anchor=tk.CENTER, font=("IPAゴシック",12))
         self.status_pj_wk_a = tk.Label(self.frame3, text="PJ No.",  font=("IPAゴシック",9),anchor=tk.W)
         self.status_pj_wk_b = tk.Label(self.frame3, text="PJ Name",  font=("IPAゴシック",9),anchor=tk.W)
         self.status_pj_wk_c = tk.Label(self.frame3, text="WORK",  font=("IPAゴシック",9),anchor=tk.W)
-        self.status_pj_wk_space = tk.Label(self.frame3, text="",  font=("IPAゴシック",9),anchor=tk.W,width=30)
+        # self.status_pj_wk_space = tk.Label(self.frame3, text="",  font=("IPAゴシック",9),anchor=tk.W,width=30)
         self.open_log_button = tk.Button(self.frame3, text="Log", font=("", 9), command=lambda: self.open_file(self.log_file))
 
         #PJ,Wkのリロード
@@ -77,12 +81,17 @@ class WorkLogger:
         self.open_pj_button = tk.Button(self.frame4, text="PJ", font=("", 9), command=lambda: self.open_file(self.pj_file))
         self.open_wk_button = tk.Button(self.frame4, text="WK", font=("", 9), command=lambda: self.open_file(self.wk_file))
 
-        # PATHの表示
+        # PATHの表示と開くボタン
         self.path_label = tk.Label(self.frame4, text="File Path : " + os.getcwd(), font=("",9))
+        self.openex_button = tk.Button(self.frame4, text="brows", font=("", 9), command=self.open_explorer)
 
         #配置
         # self.master.columnconfigure(index=0,weight=1)
         # self.master.columnconfigure(index=1,weight=3)
+        self.frame3.columnconfigure(index=0,weight=2)
+        self.frame3.columnconfigure(index=1,weight=2)
+        self.frame3.columnconfigure(index=2,weight=2)
+        self.frame3.columnconfigure(index=3,weight=1)
         self.frame1.grid(row=0,column=0, sticky=tk.NSEW, padx=5, pady=(5,0))
         self.frame2.grid(row=0,column=2, sticky=tk.NSEW, padx=5, pady=(5,0))
         self.frame3.grid(row=2,column=0, columnspan=3, sticky=tk.NSEW , padx=5)
@@ -97,6 +106,7 @@ class WorkLogger:
         self.project_combobox.grid(row=0, column=1)
         self.work_name_label.grid(row=1, column=0,padx=10)
         self.work_combobox.grid(row=1, column=1)
+        self.textbox.grid(row=2, column=1)
         self.start_button.grid(row=0, column=2, padx=10,sticky=tk.E)
         self.end_button.grid(row=1, column=2, padx=10,sticky=tk.E)
 
@@ -105,12 +115,13 @@ class WorkLogger:
         self.status_pj_wk_a.grid(row=0, column=1,sticky=tk.W)
         self.status_pj_wk_b.grid(row=1, column=1,columnspan=2,sticky=tk.W)
         self.status_pj_wk_c.grid(row=2, column=1,columnspan=2,sticky=tk.W)
-        self.status_pj_wk_space.grid(row=3, column=1,sticky=tk.W)
+        # self.status_pj_wk_space.grid(row=3, column=1,sticky=tk.W)
         self.open_log_button.grid(row=1,rowspan=3, column=3,padx=15)
 
-        self.open_pj_button.grid(row=0, column=0,padx=5)
-        self.open_wk_button.grid(row=0, column=1,padx=5)
+        self.open_pj_button.grid(row=0, column=0,padx=(5,1))
+        self.open_wk_button.grid(row=0, column=1,padx=(0,5))
         self.reload_button.grid(row=0, column=2,padx=5)
+        self.openex_button.grid(row=0,column=3, padx=5)
         self.path_label.grid(row=2,column=0,columnspan=4)
 
     def select_file(self, path_entry, label):
@@ -243,18 +254,44 @@ class WorkLogger:
                 # 日時を「YYYY-MM-DD HH:MM:SS」形式でフォーマット
                 sttime_str = self.sttime.strftime('%Y-%m-%d %H:%M:%S')
                 etime_str = self.etime.strftime('%Y-%m-%d %H:%M:%S')
-                f.write(f"{self.no},{self.project_combobox.get()},{self.work_combobox.get()},{sttime_str},{etime_str},{ttime:.2f}\n")
+                # コメントを取得
+                current_text = self.textbox.get(1.0, tk.END).strip()
+                f.write(f"{self.no},{self.project_combobox.get()},{self.work_combobox.get()},{sttime_str},{etime_str},{ttime:.2f},{current_text}\n")
             self.no += 1
 
     def open_file(self, f_path):
         # ファイルを開くための内部関数。OSに応じて適切なコマンドを実行します。
         if os.name == 'nt':  # Windowsの場合
-            os.startfile(f_path)
+            # os.startfile(f_path)
+            subprocess.call(['notepad', f_path])
         elif os.name == 'posix':  # macOS, Linuxの場合
             if os.uname().sysname == 'Darwin':  # macOS
-                subprocess.call(["open", f_path])
+                # subprocess.call(["open", f_path])
+                subprocess.call(['open', '-a', 'TextEdit', f_path])
             else:  # Linux
-                subprocess.call(["xdg-open", f_path])
+                # subprocess.call(["xdg-open", f_path])
+                subprocess.call(['gedit', f_path])  # もしくは他のエディタ（例: 'nano', 'vim'）
+
+#########################################################################################################
+# 現時点でエクスプローラーが起動しない。。。#################################################################
+#########################################################################################################
+    def open_explorer():
+        # 現在のスクリプトが置かれているディレクトリのパスを取得
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+
+        try:
+            if sys.platform == "win32":
+                # Windowsの場合、エクスプローラを開く
+                subprocess.Popen(f'explorer "{current_dir}"')
+            elif sys.platform == "darwin":
+                # Macの場合、Finderを開く
+                subprocess.Popen(["open", current_dir])
+            else:
+                # Linuxの場合、デフォルトのファイルマネージャを開く
+                subprocess.Popen(["xdg-open", current_dir])
+        except Exception as e:
+            # エラーが発生した場合、メッセージボックスでエラーメッセージを表示
+            messagebox.showerror("エラー", f"ディレクトリを開くことができませんでした: {e}")
 
     # ウィンドウを閉じる際の動作を定義
     def on_closing(self):
