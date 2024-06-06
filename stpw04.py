@@ -62,6 +62,12 @@ class WorkLogger:
         # コメント欄
         self.textbox = tk.Text(self.frame2, height=1, width=20)
         self.textbox.insert(tk.END, "comment")
+        # 改行の入力を禁止する
+        # <Return>イベント（Enterキーが押されたときのイベント）に対して、
+        # lambda関数をバインドして、イベントが発生したときに"break"を返す。
+        # "break"を返すことで、テキストボックスへの改行の挿入がキャンセルされる。
+        self.textbox.bind("<Return>", lambda event: "break")
+
         # 開始終了ボタン
         self.start_button = tk.Button(self.frame2, text="START", command=self.start_work, font=("IPAゴシック",9))
         self.end_button = tk.Button(self.frame2, text=" STOP", command=self.end_work, state=tk.DISABLED, font=("IPAゴシック",9))
@@ -261,16 +267,22 @@ class WorkLogger:
 
     def open_file(self, f_path):
         # ファイルを開くための内部関数。OSに応じて適切なコマンドを実行します。
-        if os.name == 'nt':  # Windowsの場合
-            # os.startfile(f_path)
-            subprocess.call(['notepad', f_path])
-        elif os.name == 'posix':  # macOS, Linuxの場合
-            if os.uname().sysname == 'Darwin':  # macOS
-                # subprocess.call(["open", f_path])
-                subprocess.call(['open', '-a', 'TextEdit', f_path])
-            else:  # Linux
-                # subprocess.call(["xdg-open", f_path])
-                subprocess.call(['gedit', f_path])  # もしくは他のエディタ（例: 'nano', 'vim'）
+        try:
+            if os.name == 'nt':  # Windowsの場合
+                # os.startfile(f_path)
+                # subprocess.call(['notepad', f_path])
+                subprocess.Popen(['notepad', f_path])
+            elif os.name == 'posix':  # macOS, Linuxの場合
+                if os.uname().sysname == 'Darwin':  # macOS
+                    # subprocess.call(["open", f_path])
+                    # subprocess.call(['open', '-a', 'TextEdit', f_path])
+                    subprocess.Popen(['open', '-a', 'TextEdit', f_path])
+                else:  # Linux
+                    # subprocess.call(["xdg-open", f_path])
+                    # subprocess.call(['gedit', f_path])  # もしくは他のエディタ（例: 'nano', 'vim'）
+                    subprocess.Popen(['gedit', f_path])
+        except Exception as e:
+            print(f"ファイルを開く際にエラーが発生しました: {e}")
 
 #########################################################################################################
 # 現時点でエクスプローラーが起動しない。。。#################################################################
