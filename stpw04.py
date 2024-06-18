@@ -263,6 +263,8 @@ class WorkLogger:
                 # コメントを取得
                 current_text = self.textbox.get(1.0, tk.END).strip()
                 f.write(f"{self.no},{self.project_combobox.get()},{self.work_combobox.get()},{sttime_str},{etime_str},{ttime:.2f},{current_text}\n")
+                self.textbox.delete(1.0,tk.END)
+                self.textbox.insert(tk.END, "comment")
             self.no += 1
 
     def open_file(self, f_path):
